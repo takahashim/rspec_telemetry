@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "rspec_telemetry/trace/viewer"
+
+# Read an rspec_telemetry NDJSON file and either open the interactive TUI (when
+# stdout is a terminal) or print the decorated text report (when piped/redirected).
+#   --plain          force the text report even on a terminal
+#   --follow / -f    tail a running file, folding new lines in live (TTY only)
+#   --source-root D  resolve spec source paths under D (default: cwd)
+#   --color MODE     auto (default) | none | 16 | 256 | truecolor
+#   --mouse / --no-mouse  force mouse reporting on/off (default: on;
+#                  RSPEC_TELEMETRY_MOUSE=0 also disables it)
+def take_option(argv, *flags)
+  flags.each do |flag|
+    index = argv.index(flag)
+    next unless index
+
+    argv.delete_at(index)
+    return argv.delete_at(index)
+  end
+  nil
+end
+
+plain = ARGV.delete("--plain")
+follow = ARGV.delete("--follow") || ARGV.delete("-f")
+mouse = if ARGV.delete("--no-mouse")
+          false
+        elsif ARGV.delete("--mouse")
+          true
+        else
+          # On by default; RSPEC_TELEMETRY_MOUSE=0/off/false disables it.
+          !%w[0 off false].include?(ENV["RSPEC_TELEMETRY_MOUSE"])
+        end
+source_root = take_option(ARGV, "--source-root", "-r") || Dir.pwd
+color = take_option(ARGV, "--color") || "auto"
+depth = TuiTui::ColorDepth.from(color)
+path = ARGV[0]
+if path.nil?
+  abort "usage: rspec-telemetry-viewer [--plain] [--follow] [--source-root DIR] " \
+        "[--color auto|none|16|256|truecolor] FILE.ndjson"
+end
+abort "no such file: #{path}" unless File.file?(path)
+
+if !plain && $stdout.tty?
+  base_dir = File.dirname(path) # resolve spec source ancestors relative to the file
+  if follow
+    # Start empty and let the tailer read the existing content first, so the
+    # initial frame is populated and subsequent appends stream in.
+    document = RSpecTelemetry::Trace::Viewer::Document.new
+    source = RSpecTelemetry::Trace::Viewer::TailSource.new(path)
+    source.drain.each { |line| document.apply(line) }
+    app = RSpecTelemetry::Trace::Viewer::App.new(document, source: source, follow: true,
+      base_dir: base_dir, source_root: source_root, depth: depth)
+  else
+    document = RSpecTelemetry::Trace::Viewer::Document.from_lines(File.foreach(path))
+    app = RSpecTelemetry::Trace::Viewer::App.new(document, base_dir: base_dir,
+      source_root: source_root, depth: depth)
+  end
+  TuiTui::Runtime.new(app).run(depth: depth, mouse: mouse)
+else
+  document = RSpecTelemetry::Trace::Viewer::Document.from_lines(File.foreach(path))
+  enabled = $stdout.tty? && depth != :none
+  report = RSpecTelemetry::Trace::Viewer::TextReport.new(document, depth: depth, enabled: enabled)
+  puts report.render
+  puts report.summary
+end

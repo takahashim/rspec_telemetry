@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "rspec_telemetry/version"
+require "rspec_telemetry/cli"
+
+exit RSpecTelemetry::CLI.new(ARGV).run
