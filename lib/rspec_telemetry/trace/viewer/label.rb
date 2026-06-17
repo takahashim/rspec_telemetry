@@ -19,7 +19,7 @@ module RSpecTelemetry
 
         def self.category(entry)
           if entry.is_a?(Document::Action)
-            return failed?(entry.status) ? :error : :action
+            return entry.failed? ? :error : :action
           end
 
           case entry.op
@@ -31,8 +31,8 @@ module RSpecTelemetry
         end
 
         def self.action_segments(action)
-          tag = failed?(action.status) ? " [#{action.status.upcase}]" : ""
-          style = failed?(action.status) ? :error : :action
+          tag = action.failed? ? " [#{action.status.upcase}]" : ""
+          style = action.failed? ? :error : :action
           segments = [seg("EXAMPLE #{action.label}#{tag}", style)]
           segments << seg("  at: #{action.source}", :dim) if action.source
           segments
@@ -67,8 +67,6 @@ module RSpecTelemetry
           list.nil? || list.empty? ? "" : " [#{Array(list).join(",")}]"
         end
 
-        def self.failed?(status) = %w[failed error].include?(status)
-
         def self.extra(fields)
           fields.reject { |key, _| Document::INFRA_FIELDS.include?(key) }
         end
@@ -77,15 +75,8 @@ module RSpecTelemetry
 
         def self.compact(value)
           return "" if value.nil? || value.empty?
-          return inspect_hash(value) if value.is_a?(Hash)
 
-          value.inspect
-        end
-
-        # Format a Hash deterministically so output does not depend on the Ruby
-        # version (Ruby 3.4 changed Hash#inspect from `{"k"=>v}` to `{"k" => v}`).
-        def self.inspect_hash(hash)
-          "{#{hash.map { |key, val| "#{key.inspect} => #{val.inspect}" }.join(", ")}}"
+          Format.value(value)
         end
       end
     end

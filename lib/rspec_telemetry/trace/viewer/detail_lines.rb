@@ -62,11 +62,11 @@ module RSpecTelemetry
         def self.field_lines(key, value)
           case value
           when Hash
-            ["#{key}:"] + value.map { |k, v| "  #{k}: #{v.inspect}" }
+            ["#{key}:"] + value.map { |k, v| "  #{k}: #{Format.value(v)}" }
           when Array
-            ["#{key}:"] + value.map { |v| "  - #{v.inspect}" }
+            ["#{key}:"] + value.map { |v| "  - #{Format.value(v)}" }
           else
-            ["#{key}: #{value.inspect}"]
+            ["#{key}: #{Format.value(value)}"]
           end
         end
       end

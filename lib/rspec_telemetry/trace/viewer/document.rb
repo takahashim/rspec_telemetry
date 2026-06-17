@@ -7,7 +7,12 @@ module RSpecTelemetry
     module Viewer
       # Incrementally folds an NDJSON trace into examples and their child events.
       class Document
-        Action = Data.define(:seq, :verb, :label, :t, :source, :wall_ms, :status, :duration_ms, :exception)
+        # The single source of truth for which statuses count as failures.
+        FAILED_STATUSES = %w[failed error].freeze
+
+        Action = Data.define(:seq, :verb, :label, :t, :source, :wall_ms, :status, :duration_ms, :exception) do
+          def failed? = FAILED_STATUSES.include?(status)
+        end
 
         Event = Data.define(:seq, :op, :t, :action, :fields)
 
@@ -139,7 +144,7 @@ module RSpecTelemetry
             exception: exception_of(parsed)
           )
           @actions_by_seq[seq] = updated
-          @failed_action = seq if failed_status?(parsed["status"])
+          @failed_action = seq if updated.failed?
           index = @entries.index(old)
           @entries[index] = updated if index
         end
@@ -187,8 +192,6 @@ module RSpecTelemetry
 
           {"class" => klass, "message" => parsed["exception_message"]}
         end
-
-        def failed_status?(status) = %w[failed error].include?(status)
       end
     end
   end

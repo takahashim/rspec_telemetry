@@ -14,11 +14,7 @@ module RSpecTelemetry
           action: S.new(attrs: [:bold]),
           dim: BASE.muted,
           error: S.new(fg: :red, attrs: [:bold]),
-          warn: S.new(fg: :yellow),
-          ok: S.new(fg: :green),
-          redirect: S.new(fg: :cyan),
-          client_error: S.new(fg: :yellow),
-          server_error: S.new(fg: :red)
+          ok: S.new(fg: :green)
         }.freeze
 
         SELECT = BASE.selection

@@ -8,6 +8,7 @@ require_relative "layout"
 require_relative "pane_resizer"
 require_relative "source_view"
 require_relative "app_renderer"
+require_relative "follow_controller"
 require_relative "screen/timeline_screen"
 require_relative "screen/ranked_screen"
 
@@ -18,7 +19,6 @@ module RSpecTelemetry
       class App
         WHEEL_ROWS = 3
         REDRAW = "\f"
-        SPINNER = %w[| / - \\].freeze
 
         HELP = [
           ["1 / 2 / 3", "timeline / slowest examples / factories"],
@@ -41,9 +41,10 @@ module RSpecTelemetry
           ["q", "quit"]
         ].freeze
 
-        attr_reader :detail_scroll, :follow
+        attr_reader :detail_scroll
 
         def focus = @focus_ring.current
+        def follow = @follow_ctl.active?
 
         def initialize(
           document,
@@ -54,15 +55,12 @@ module RSpecTelemetry
           source_root: Dir.pwd
         )
           @document = document
-          @source = source
-          @follow = follow
+          @follow_ctl = FollowController.new(source: source, active: follow)
           @source_view = SourceView.new(source_root: source_root, base_dir: base_dir)
           @renderer = AppRenderer.new
           @list = TuiTui::ScrollList.new
           @detail_scroll = 0
           @focus_ring = TuiTui::FocusRing.new(:timeline, :detail)
-          @spin = 0
-          @stick = follow
           @modal = nil
           @on_result = nil
           @quit_armed = false
@@ -76,7 +74,7 @@ module RSpecTelemetry
 
         def cursor = @list.cursor
 
-        def wants_tick? = @follow
+        def wants_tick? = @follow_ctl.wants_tick?
 
         def redraw?(event) = event.is_a?(TuiTui::KeyEvent) && event.key == REDRAW
 
@@ -85,7 +83,7 @@ module RSpecTelemetry
           when TuiTui::KeyEvent
             @modal ? route_modal(event) : handle_key_event(event)
           when TuiTui::MouseEvent
-            @modal ? self : handle_mouse(event)
+            @modal ? route_modal(event) : handle_mouse(event)
           when TuiTui::ResizeEvent
             (@size = event.size) && self
           when TuiTui::TickEvent
@@ -123,13 +121,15 @@ module RSpecTelemetry
           @list.go_to(index)
           @detail_scroll = 0
           # Follow resumes only when the cursor is still parked at the tail.
-          @stick = @follow && @list.at_end?
+          @follow_ctl.reset_stick(at_end: @list.at_end?)
         end
 
         private
 
         def route_modal(event)
-          result = @modal.handle(event.key)
+          # Route both keys and clicks so modal widgets (e.g. Confirm buttons)
+          # stay interactive with the mouse instead of being ignored.
+          result = event.is_a?(TuiTui::MouseEvent) ? @modal.handle_mouse(event) : @modal.handle(event.key)
           return self if result.nil?
 
           @modal = nil
@@ -220,28 +220,16 @@ module RSpecTelemetry
         end
 
         def toggle_follow
-          @follow = !@follow
-          @stick = @follow && @list.at_end?
+          @follow_ctl.toggle(at_end: @list.at_end?)
         end
 
         def poll
-          return self unless @follow
-
-          # TickEvent drives both live ingestion and the pending spinner.
-          @spin += 1
-          ingest(@source.drain) if @source
-          @list.to_end if @stick
+          # Order matters: refresh the row count after ingesting, then stick the
+          # cursor to the (new) tail.
+          @screen.refresh if @follow_ctl.drain(@document)
+          @follow_ctl.stick(@list)
           self
         end
-
-        def ingest(lines)
-          return if lines.empty?
-
-          lines.each { |line| @document.apply(line) }
-          @screen.refresh
-        end
-
-        def spinner = SPINNER[@spin % SPINNER.length]
 
         def view_source
           pager = @source_view.pager(@screen.current_source)
@@ -267,8 +255,8 @@ module RSpecTelemetry
             modal: @modal,
             detail_scroll: @detail_scroll,
             quit_armed: @quit_armed,
-            follow: @follow,
-            spinner: spinner,
+            follow: @follow_ctl.active?,
+            spinner: @follow_ctl.spinner,
             position: position
           )
         end

@@ -151,7 +151,7 @@ module RSpecTelemetry
             index = @list.cursor + direction
             while index.between?(0, @list.last)
               entry = @visible[index]
-              return app.go_to(index) if entry.is_a?(Document::Action) && %w[failed error].include?(entry.status)
+              return app.go_to(index) if entry.is_a?(Document::Action) && entry.failed?
 
               index += direction
             end

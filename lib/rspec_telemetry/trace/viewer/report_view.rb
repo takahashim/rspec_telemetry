@@ -27,11 +27,10 @@ module RSpecTelemetry
 
         def self.example_rows(document)
           document.actions.sort_by { |action| -(action.duration_ms || 0.0) }.map do |action|
-            failed = %w[failed error].include?(action.status)
-            tag = failed ? " [#{action.status.upcase}]" : ""
+            tag = action.failed? ? " [#{action.status.upcase}]" : ""
             Row.new(
               text: "#{dur(action.duration_ms)}  #{action.label}#{tag}",
-              style: failed ? :error : :plain,
+              style: action.failed? ? :error : :plain,
               source: action.source,
               payload: action
             )
