@@ -12,7 +12,10 @@ Gem::Specification.new do |spec|
   spec.description = "Collect RSpec / FactoryBot telemetry as NDJSON to find slow tests."
   spec.homepage = "https://github.com/takahashim/rspec_telemetry"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.2"
+  # Collection (the RSpec formatter -> NDJSON) runs on Ruby >= 3.1. The
+  # interactive viewer needs >= 3.2 and the optional tui_tui gem; it degrades
+  # gracefully when either is missing.
+  spec.required_ruby_version = ">= 3.1"
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
@@ -26,7 +29,11 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "rspec-core", ">= 3.0"
-  spec.add_dependency "tui_tui", "~> 0.1" # the interactive viewer's TUI framework
+
+  # tui_tui is optional at runtime: only the interactive viewer needs it (Ruby
+  # >= 3.2). Keeping it out of the runtime deps lets the collector install and
+  # run on Ruby 3.1. Add `gem "tui_tui"` yourself to use the viewer.
+  spec.add_development_dependency "tui_tui", "~> 0.2"
 
   # activesupport is optional at runtime: only FactoryBot tracking needs it
   # (via ActiveSupport::Notifications), and FactoryBot itself depends on it.

@@ -1,6 +1,12 @@
 # frozen_string_literal: true
 
-require "active_support/isolated_execution_state"
+# isolated_execution_state only exists on Rails 7+; ActiveSupport::Notifications
+# works without it, so make it optional to support Rails 6.x (and earlier).
+begin
+  require "active_support/isolated_execution_state"
+rescue LoadError
+  nil
+end
 require "active_support/notifications"
 
 module RSpecTelemetry

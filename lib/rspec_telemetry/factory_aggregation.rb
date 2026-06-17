@@ -2,8 +2,10 @@
 
 module RSpecTelemetry
   module FactoryAggregation
-    # Shared by live summaries, CLI reports, and the viewer so ranking rules stay identical.
-    Stat = Data.define(:key, :factory, :strategy, :count, :total_ms, :self_total_ms, :max_ms) do
+    # Shared by live summaries, CLI reports, and the viewer so ranking rules stay
+    # identical. A Struct (not Data) so collection runs on Ruby 3.1, where this is
+    # on the require path via summary.rb.
+    Stat = Struct.new(:key, :factory, :strategy, :count, :total_ms, :self_total_ms, :max_ms, keyword_init: true) do
       def avg_ms = count.zero? ? 0.0 : total_ms / count
     end
 

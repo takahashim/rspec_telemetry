@@ -10,8 +10,9 @@ It helps you analyze your test suite.
 
 ## Requirements
 
-- Ruby >= 3.2
-- RSpec
+- Ruby >= 3.1 for collection (the RSpec formatter that writes NDJSON).
+- RSpec.
+- The interactive viewer (`rspec-telemetry-viewer`) needs Ruby >= 3.2 and the optional `tui_tui` gem (`gem "tui_tui"`).
 - activesupport (optional): only needed for FactoryBot tracking, which relies on
   `ActiveSupport::Notifications`. FactoryBot pulls it in, so projects using
   FactoryBot already have it; otherwise factory tracking is skipped automatically.
