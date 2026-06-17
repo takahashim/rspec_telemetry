@@ -4,19 +4,10 @@ require "spec_helper"
 require "stringio"
 
 RSpec.describe RSpecTelemetry::Summary do
+  include SummaryHelpers
+
   let(:config) { RSpecTelemetry::Config.new }
   subject(:summary) { described_class.new(config) }
-
-  def factory_event(factory:, duration:, self_ms: nil, example_id: nil, strategy: "create")
-    {
-      type: "factory_bot.run_factory",
-      factory: factory,
-      strategy: strategy,
-      duration_ms: duration,
-      self_duration_ms: self_ms || duration,
-      example_id: example_id
-    }
-  end
 
   it "aggregates factory stats by factory:strategy" do
     summary.add(factory_event(factory: "user", duration: 10.0))

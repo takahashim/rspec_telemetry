@@ -8,17 +8,7 @@ module RSpecTelemetry
       # The pure geometry function shared by the renderer and mouse hit-testing.
       # No app state, no terminal — just size + a few values in, rects out.
       RSpec.describe Layout do
-        def size(rows, cols) = TuiTui::Size.new(rows: rows, cols: cols)
-
-        def compute(rows:, cols:, time: false, source: false, ratio: 0.5, source_rows: 10)
-          Layout.compute(
-            size: size(rows, cols),
-            want_time_bar: time,
-            want_source: source,
-            split_ratio: ratio,
-            source_rows: source_rows
-          )
-        end
+        include LayoutHelpers
 
         it "a tiny terminal collapses to a single region" do
           r = compute(rows: 1, cols: 80)

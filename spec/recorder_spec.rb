@@ -12,7 +12,9 @@ RSpec.describe RSpecTelemetry::Recorder do
     }
   end
 
-  def build(enabled: true)
+  let(:enabled) { true }
+  let(:events) { File.readlines(File.join(@dir, "out.ndjson"), chomp: true).map { |l| JSON.parse(l) } }
+  let(:recorder) do
     config = RSpecTelemetry::Config.new
     config.enabled = enabled
     config.print_summary = false
@@ -20,12 +22,7 @@ RSpec.describe RSpecTelemetry::Recorder do
     described_class.new(config)
   end
 
-  def events
-    File.readlines(File.join(@dir, "out.ndjson"), chomp: true).map { |l| JSON.parse(l) }
-  end
-
   it "adds common fields to every event" do
-    recorder = build
     recorder.start
     recorder.record("example.started", file_path: "x")
     recorder.finish
@@ -39,7 +36,6 @@ RSpec.describe RSpecTelemetry::Recorder do
   end
 
   it "uses the current thread-local example id" do
-    recorder = build
     recorder.start
     recorder.set_current_example("eid-1")
     recorder.record("factory_bot.run_factory", factory: "user")
@@ -50,12 +46,16 @@ RSpec.describe RSpecTelemetry::Recorder do
     expect(events.map { |e| e["example_id"] }).to(eq(["eid-1", nil]))
   end
 
-  it "records nothing when disabled" do
-    recorder = build(enabled: false)
-    recorder.start
-    expect(recorder.started?).to(be(false))
-    recorder.record("example.started")
-    recorder.finish
-    expect(File.exist?(File.join(@dir, "out.ndjson"))).to(be(false))
+  context "config is not enabled" do
+
+    let(:enabled) { false }
+
+    it "records nothing when disabled" do
+      recorder.start
+      expect(recorder.started?).to(be(false))
+      recorder.record("example.started")
+      recorder.finish
+      expect(File.exist?(File.join(@dir, "out.ndjson"))).to(be(false))
+    end
   end
 end

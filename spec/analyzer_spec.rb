@@ -6,11 +6,7 @@ require "tmpdir"
 require "json"
 
 RSpec.describe RSpecTelemetry::Analyzer do
-  def write_ndjson(dir, name, events)
-    path = File.join(dir, name)
-    File.write(path, events.map { |e| JSON.generate(e) }.join("\n") + "\n")
-    path
-  end
+  include NdjsonHelpers
 
   let(:events) do
     [

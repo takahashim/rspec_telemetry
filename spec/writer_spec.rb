@@ -12,9 +12,7 @@ RSpec.describe RSpecTelemetry::Writer do
     }
   end
 
-  def path
-    File.join(@dir, "nested", "out.ndjson")
-  end
+  let(:path) { File.join(@dir, "nested", "out.ndjson") }
 
   it "writes one JSON object per line and creates the directory" do
     writer = described_class.new(path)

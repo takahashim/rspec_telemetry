@@ -30,12 +30,7 @@ RSpec.describe RSpecTelemetry::Subscribers::FactoryBot do
   before { subscriber.subscribe }
   after { subscriber.unsubscribe }
 
-  # FactoryBotの実payload(name/strategy/traits/overrides/factory)を模したinstrument
-  def run_factory(name:, strategy: :create, traits: [], overrides: {}, factory: nil)
-    payload = {name: name, strategy: strategy, traits: traits, overrides: overrides, factory: factory}
-    ActiveSupport::Notifications.instrument("factory_bot.before_run_factory", payload)
-    ActiveSupport::Notifications.instrument("factory_bot.run_factory", payload) { yield if block_given? }
-  end
+  include FactoryBotNotificationHelpers
 
   it "records only override attribute NAMES, never values (privacy)" do
     run_factory(name: :user, overrides: {email: "secret@example.com", password: "hunter2"})

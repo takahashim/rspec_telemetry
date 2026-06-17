@@ -10,64 +10,51 @@ module RSpecTelemetry
       # until it finishes, appends are picked up incrementally, and a shrunk file
       # resets the read position.
       RSpec.describe TailSource do
-        def with_file
+        around do |example|
           Tempfile.create(["trace", ".ndjson"]) do |file|
             file.sync = true
-            yield file, TailSource.new(file.path)
+            @file = file
+            example.run
           end
         end
 
-        def append(file, text)
-          file.write(text)
-          file.flush
-        end
+        let(:source) { TailSource.new(@file.path) }
 
         it "returns complete lines" do
-          with_file do |file, source|
-            append(file, "a\nb\n")
-            expect(source.drain).to eq(%w[a b])
-          end
+          @file.write("a\nb\n")
+          expect(source.drain).to eq(%w[a b])
         end
 
         it "holds back partial trailing line" do
-          with_file do |file, source|
-            append(file, "a\nb")
-            # "b" has no newline yet
-            expect(source.drain).to eq(["a"])
-            append(file, "c\n")
-            # completed on the next drain
-            expect(source.drain).to eq(["bc"])
-          end
+          @file.write("a\nb")
+          # "b" has no newline yet
+          expect(source.drain).to eq(["a"])
+          @file.write("c\n")
+          # completed on the next drain
+          expect(source.drain).to eq(["bc"])
         end
 
         it "drain is incremental" do
-          with_file do |file, source|
-            append(file, "one\n")
-            expect(source.drain).to eq(["one"])
-            # nothing new
-            expect(source.drain).to be_empty
-            append(file, "two\n")
-            expect(source.drain).to eq(["two"])
-          end
+          @file.write("one\n")
+          expect(source.drain).to eq(["one"])
+          # nothing new
+          expect(source.drain).to be_empty
+          @file.write("two\n")
+          expect(source.drain).to eq(["two"])
         end
 
         it "empty or missing file" do
-          with_file do |_file, source|
-            expect(source.drain).to be_empty
-          end
-
+          expect(source.drain).to be_empty
           expect(TailSource.new("/no/such/trace.ndjson").drain).to be_empty
         end
 
         it "shrunk file resets" do
-          with_file do |file, source|
-            append(file, "x\ny\n")
-            source.drain
-            file.truncate(0)
-            file.rewind
-            append(file, "z\n")
-            expect(source.drain).to eq(["z"])
-          end
+          @file.write("x\ny\n")
+          source.drain
+          @file.truncate(0)
+          @file.rewind
+          @file.write("z\n")
+          expect(source.drain).to eq(["z"])
         end
       end
     end

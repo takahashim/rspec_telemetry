@@ -7,11 +7,12 @@ require "json"
 require "stringio"
 
 RSpec.describe RSpecTelemetry::CLI do
-  def run_cli(argv)
+  let(:argv) { [@path] }
+  let(:cli_run) do
     out = StringIO.new
     err = StringIO.new
     code = described_class.new(argv, out: out, err: err).run
-    [code, out.string, err.string]
+    {code: code, out: out.string, err: err.string}
   end
 
   let(:events) do
@@ -54,32 +55,40 @@ RSpec.describe RSpecTelemetry::CLI do
   end
 
   it "prints a report with the main sections" do
-    code, out, = run_cli([@path])
-    expect(code).to(eq(0))
-    expect(out).to(include("Overview"))
-    expect(out).to(include("Slowest examples"))
-    expect(out).to(include("Slowest factories"))
-    expect(out).to(include("user:create"))
-    expect(out).to(include("A example"))
+    expect(cli_run[:code]).to(eq(0))
+    expect(cli_run[:out]).to(include("Overview"))
+    expect(cli_run[:out]).to(include("Slowest examples"))
+    expect(cli_run[:out]).to(include("Slowest factories"))
+    expect(cli_run[:out]).to(include("user:create"))
+    expect(cli_run[:out]).to(include("A example"))
   end
 
-  it "drills down into a single example" do
-    code, out, = run_cli([@path, "--example", "a"])
-    expect(code).to(eq(0))
-    expect(out).to(include("Example: a"))
-    expect(out).to(include("user:create"))
-    expect(out).to(include("[admin]"))
+  context "with --example" do
+    let(:argv) { [@path, "--example", "a"] }
+
+    it "drills down into a single example" do
+      expect(cli_run[:code]).to(eq(0))
+      expect(cli_run[:out]).to(include("Example: a"))
+      expect(cli_run[:out]).to(include("user:create"))
+      expect(cli_run[:out]).to(include("[admin]"))
+    end
   end
 
-  it "errors clearly when no files are found" do
-    code, _out, err = run_cli(["/nonexistent/does_not_exist.ndjson"])
-    expect(code).to(eq(1))
-    expect(err).to(include("File not found").or(include("No telemetry")))
+  context "when no files are found" do
+    let(:argv) { ["/nonexistent/does_not_exist.ndjson"] }
+
+    it "errors clearly" do
+      expect(cli_run[:code]).to(eq(1))
+      expect(cli_run[:err]).to(include("File not found").or(include("No telemetry")))
+    end
   end
 
-  it "respects --top" do
-    code, out, = run_cli([@path, "--top", "1"])
-    expect(code).to(eq(0))
-    expect(out).to(include("Overview"))
+  context "with --top" do
+    let(:argv) { [@path, "--top", "1"] }
+
+    it "is respected" do
+      expect(cli_run[:code]).to(eq(0))
+      expect(cli_run[:out]).to(include("Overview"))
+    end
   end
 end

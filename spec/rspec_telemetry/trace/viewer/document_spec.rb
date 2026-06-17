@@ -9,11 +9,9 @@ module RSpecTelemetry
       # grouping Actions, factory calls become Events under them, and the tolerance
       # rules (blank / broken / unknown / typeless lines).
       RSpec.describe Document do
-        include Fixtures
-
         # An admin example with one factory, then a failing example whose order
         # factory nests a user factory.
-        def lines
+        let(:lines) do
           [
             started(id: "a", file: "spec/user_spec.rb", line: 3, desc: "User admin", mono: 1000.0),
             factory(name: "user", ex: "a", traits: ["admin"], dur: 5.0, mono: 1000.001),
@@ -34,7 +32,7 @@ module RSpecTelemetry
           ]
         end
 
-        def document = Document.from_lines(lines)
+        let(:document) { Document.from_lines(lines) }
 
         it "examples become actions factories become events" do
           kinds = document.entries.map { |e| e.is_a?(Document::Action) ? "example" : e.op }

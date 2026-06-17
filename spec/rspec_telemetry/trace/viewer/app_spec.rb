@@ -9,11 +9,9 @@ module RSpecTelemetry
       # exercised without a terminal: update folds a synthetic key, view returns a
       # Canvas whose rows are inspected.
       RSpec.describe App do
-        include Fixtures
-
         # file: nil keeps the always-on source strip out of the way so the row
         # assertions below see the timeline/detail directly.
-        def lines
+        let(:lines) do
           [
             started(id: "a", file: nil, desc: "User admin"),
             factory(name: "user", ex: "a", traits: ["admin"], dur: 5.0),
@@ -27,10 +25,9 @@ module RSpecTelemetry
         end
         # entries: 0 example(a) 1 factory(user) 2 example(b) 3 factory(user) 4 factory(order)
 
-        def app = App.new(Document.from_lines(lines), depth: :ansi256)
-        def key(k) = TuiTui::KeyEvent.new(key: k)
-        def size = TuiTui::Size.new(rows: 16, cols: 80)
-        def screen(a, s = size) = (1..s.rows).map { |r| a.view(s).render_row(r, enabled: false) }.join("\n")
+        let(:app) { App.new(Document.from_lines(lines), depth: :ansi256) }
+        let(:size) { TuiTui::Size.new(rows: 16, cols: 80) }
+        let(:ctx) { render_context(size) }
 
         it "starts at top focused on timeline" do
           a = app
@@ -78,7 +75,7 @@ module RSpecTelemetry
         it "space and b page by the viewport height" do
           a = app
           # establishes @size for page math
-          a.view(size)
+          a.view(ctx)
           rows = a.layout(size).list.rows
           a.update(key(" "))
           # clamped to the last entry
@@ -133,7 +130,7 @@ module RSpecTelemetry
         it "armed ctrl c shows a hint" do
           a = app
           a.update(key(TuiTui::KeyCode::CTRL_C))
-          row = a.view(size).render_row(size.rows, enabled: false)
+          row = a.view(ctx).render_row(size.rows, enabled: false)
           expect(row).to include("Ctrl-C again to quit")
         end
 
@@ -163,11 +160,12 @@ module RSpecTelemetry
 
         it "help overlay opens" do
           tall = TuiTui::Size.new(rows: 22, cols: 80)
+          tall_ctx = TuiTui::RenderContext.new(size: tall, chrome: TuiTui::BoxChrome::ASCII)
           a = app
           a.update(key("?"))
-          expect(screen(a, tall)).to include("this help")
+          expect(screen(a, tall_ctx)).to include("this help")
           a.update(key("x"))
-          expect(screen(a, tall)).not_to include("this help")
+          expect(screen(a, tall_ctx)).not_to include("this help")
         end
 
         it "example detail shows the source line" do
@@ -194,23 +192,25 @@ module RSpecTelemetry
         end
 
         it "view returns a canvas of the requested size" do
-          canvas = app.view(TuiTui::Size.new(rows: 10, cols: 80))
+          size = TuiTui::Size.new(rows: 10, cols: 80)
+          ctx = TuiTui::RenderContext.new(size: size, chrome: TuiTui::BoxChrome::ASCII)
+          canvas = app.view(ctx)
           expect(canvas.rows).to eq(10)
           expect(canvas.cols).to eq(80)
         end
 
         it "view shows the timeline" do
-          expect(app.view(size).render_row(1, enabled: false)).to include("EXAMPLE User admin")
+          expect(app.view(ctx).render_row(1, enabled: false)).to include("EXAMPLE User admin")
         end
 
         it "selected row is drawn with the selection style" do
-          canvas = app.view(size)
+          canvas = app.view(ctx)
           styles = (1..canvas.cols).map { |c| canvas.cell(1, c)&.style }
           expect(styles).to include(RSpecTelemetry::Trace::Viewer::Theme::SELECT)
         end
 
         it "status bar shows count and position" do
-          row = app.view(size).render_row(size.rows, enabled: false)
+          row = app.view(ctx).render_row(size.rows, enabled: false)
           expect(row).to include("3 events  failed")
           expect(row).to include("1/5")
         end
@@ -225,15 +225,13 @@ module RSpecTelemetry
         end
 
         it "narrow terminal hides detail pane" do
-          canvas = app.view(TuiTui::Size.new(rows: 10, cols: 40))
+          size = TuiTui::Size.new(rows: 10, cols: 40)
+          ctx = TuiTui::RenderContext.new(size: size, chrome: TuiTui::BoxChrome::ASCII)
+          canvas = app.view(ctx)
           expect(canvas.render_row(1, enabled: false)).to include("EXAMPLE User admin")
         end
 
         describe "mouse" do
-          def mouse(action, col, row, button: :left)
-            TuiTui::MouseEvent.new(action: action, button: button, col: col, row: row)
-          end
-
           it "wheel scrolls the list" do
             a = app
             a.update(mouse(:wheel, 5, 5, button: :wheel_down))
@@ -246,7 +244,7 @@ module RSpecTelemetry
           it "clicking a pane focuses it" do
             a = app
             # establish pane geometry
-            a.view(size)
+            a.view(ctx)
             detail = a.layout(size).detail
             # inside the detail pane
             a.update(mouse(:press, detail.col + 2, 3))
@@ -260,7 +258,7 @@ module RSpecTelemetry
 
           it "dragging the divider resizes the panes, and release ends the drag" do
             a = app
-            a.view(size)
+            a.view(ctx)
             divider = a.layout(size).divider
 
             # grab the divider
@@ -278,7 +276,7 @@ module RSpecTelemetry
 
           it "a drag that did not grab a handle moves nothing" do
             a = app
-            a.view(size)
+            a.view(ctx)
             divider = a.layout(size).divider
             # never pressed a handle first
             a.update(mouse(:drag, divider - 10, 3))
@@ -296,7 +294,8 @@ module RSpecTelemetry
             )
             a = App.new(doc, depth: :ansi256)
             tall = TuiTui::Size.new(rows: 24, cols: 80)
-            a.view(tall)
+            tall_ctx = TuiTui::RenderContext.new(size: tall, chrome: TuiTui::BoxChrome::ASCII)
+            a.view(tall_ctx)
             header = a.layout(tall).source_top
             before = a.layout(tall).source.rows
             expect(header).not_to be_nil
@@ -311,7 +310,7 @@ module RSpecTelemetry
 
           it "does not collapse a pane below the minimum" do
             a = app
-            a.view(size)
+            a.view(ctx)
             a.update(mouse(:press, a.layout(size).divider, 3))
             # drag far past the left edge
             a.update(mouse(:drag, -100, 3))
@@ -320,7 +319,7 @@ module RSpecTelemetry
 
           it "draws a visible divider at the grab column" do
             a = app
-            canvas = a.view(size)
+            canvas = a.view(ctx)
             divider = a.layout(size).divider
             expect(canvas.cell(1, divider).char).to eq("|")
           end

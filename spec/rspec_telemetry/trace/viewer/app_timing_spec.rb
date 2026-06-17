@@ -9,10 +9,8 @@ module RSpecTelemetry
       # "took:" in the detail, and the total in the status bar / top bar — for
       # finding slow examples. wall_ms is synthesized from monotonic_time.
       RSpec.describe App do
-        include Fixtures
-
         # t0 = 1000.0. example a runs 58ms; example b 1.14s; total wall 1.2s.
-        def lines
+        let(:lines) do
           [
             started(id: "a", file: nil, desc: "fast", mono: 1000.002),
             finished(id: "a", file: nil, status: "passed", dur: 58.0, mono: 1000.06),
@@ -23,10 +21,9 @@ module RSpecTelemetry
           ]
         end
 
-        def app = App.new(Document.from_lines(lines), depth: :ansi256)
-        def key(k) = TuiTui::KeyEvent.new(key: k)
-        def narrow = TuiTui::Size.new(rows: 12, cols: 50)
-        def wide = TuiTui::Size.new(rows: 12, cols: 80)
+        let(:app) { App.new(Document.from_lines(lines), depth: :ansi256) }
+        let(:narrow) { render_context(TuiTui::Size.new(rows: 12, cols: 50)) }
+        let(:wide) { render_context(TuiTui::Size.new(rows: 12, cols: 80)) }
 
         it "timeline shows per example durations" do
           a = app

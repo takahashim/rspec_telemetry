@@ -11,8 +11,6 @@ module RSpecTelemetry
       # show the test file at the example's line (file_path:line_number), and a
       # factory event borrows the source of the example that owns it.
       RSpec.describe App do
-        include Fixtures
-
         SPEC = <<~RUBY
           RSpec.describe "Posts" do
             it "creates a post" do
@@ -22,12 +20,19 @@ module RSpecTelemetry
           end
         RUBY
 
-        def key(k) = TuiTui::KeyEvent.new(key: k)
-        def size = TuiTui::Size.new(rows: 16, cols: 70)
+        let(:size) { TuiTui::Size.new(rows: 16, cols: 70) }
+        let(:ctx) { render_context(size) }
 
-        def with_app
-          Dir.mktmpdir do |root|
-            ::File.write(::File.join(root, "posts_spec.rb"), SPEC)
+        context "with the spec file on disk" do
+          around do |example|
+            Dir.mktmpdir do |root|
+              @root = root
+              ::File.write(::File.join(root, "posts_spec.rb"), SPEC)
+              example.run
+            end
+          end
+
+          let(:app) do
             doc = Document.from_lines(
               [
                 started(id: "a", file: "posts_spec.rb", line: 4, desc: "Posts creates a post"),
@@ -36,22 +41,38 @@ module RSpecTelemetry
                 suite(examples: 1)
               ]
             )
-            yield App.new(doc, depth: :ansi256, source_root: root)
+            App.new(doc, depth: :ansi256, source_root: @root)
           end
-        end
 
-        def screen(a)
-          (1..size.rows).map { |r| a.view(size).render_row(r, enabled: false) }.join("\n")
-        end
-
-        it "persistent source pane shows the selected step" do
-          with_app do |a|
-            shown = screen(a)
+          it "persistent source pane shows the selected step" do
+            shown = screen(app)
             expect(shown).to include("source: posts_spec.rb:4")
             # the source code is shown
             expect(shown).to include("be_persisted")
             # the triggering line is marked
             expect(shown).to include("→")
+          end
+
+          it "s toggles the source pane" do
+            expect(screen(app)).to include("source: posts_spec.rb:4")
+            app.update(key("s"))
+            expect(screen(app)).not_to include("source: posts_spec.rb:4")
+            app.update(key("s"))
+            expect(screen(app)).to include("source: posts_spec.rb:4")
+          end
+
+          it "event uses the owning example source" do
+            # move onto the factory event under the example
+            app.update(key("j"))
+            expect(screen(app)).to include("source: posts_spec.rb:4")
+          end
+
+          it "capital s toggles the full screen pager" do
+            expect(screen(app)).not_to include("+--")
+            app.update(key("S"))
+            expect(screen(app)).to include("+--")
+            app.update(key("S"))
+            expect(screen(app)).not_to include("+--")
           end
         end
 
@@ -82,24 +103,6 @@ module RSpecTelemetry
           expect(screen(a)).not_to include("source:")
         end
 
-        it "s toggles the source pane" do
-          with_app do |a|
-            expect(screen(a)).to include("source: posts_spec.rb:4")
-            a.update(key("s"))
-            expect(screen(a)).not_to include("source: posts_spec.rb:4")
-            a.update(key("s"))
-            expect(screen(a)).to include("source: posts_spec.rb:4")
-          end
-        end
-
-        it "event uses the owning example source" do
-          with_app do |a|
-            # move onto the factory event under the example
-            a.update(key("j"))
-            expect(screen(a)).to include("source: posts_spec.rb:4")
-          end
-        end
-
         it "resolves source from the trace files ancestors" do
           # A real layout: trace at <root>/tmp/run.ndjson, spec at <root>/spec.
           # No --source-root is given (source_root points elsewhere), yet the spec
@@ -118,16 +121,6 @@ module RSpecTelemetry
             a = App.new(doc, depth: :ansi256, base_dir: ::File.join(root, "tmp"), source_root: "/nonexistent")
             expect(screen(a)).to include("source: ./spec/foo_spec.rb:2")
             expect(screen(a)).not_to include("source not found")
-          end
-        end
-
-        it "capital s toggles the full screen pager" do
-          with_app do |a|
-            expect(screen(a)).not_to include("+--")
-            a.update(key("S"))
-            expect(screen(a)).to include("+--")
-            a.update(key("S"))
-            expect(screen(a)).not_to include("+--")
           end
         end
 

@@ -8,9 +8,7 @@ module RSpecTelemetry
       # The decorated text frontend. With color disabled the output is plain and
       # deterministic, so it can be asserted exactly (golden).
       RSpec.describe TextReport do
-        include Fixtures
-
-        def lines
+        let(:lines) do
           [
             started(id: "a", file: "spec/user_spec.rb", line: 3, desc: "User admin"),
             factory(name: "user", ex: "a", traits: ["admin"], overrides: ["email"], dur: 5.0),
@@ -30,7 +28,7 @@ module RSpecTelemetry
           ]
         end
 
-        def plain_report = TextReport.new(Document.from_lines(lines), enabled: false)
+        let(:plain_report) { TextReport.new(Document.from_lines(lines), enabled: false) }
 
         it "plain render is example grouped with source location" do
           expected = <<~TEXT

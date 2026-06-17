@@ -8,9 +8,7 @@ module RSpecTelemetry
       # The ranked report screens: 2 = slowest examples, 3 = factories by self
       # time. Switching, ranking order, navigation, detail, and back to 1.
       RSpec.describe App do
-        include Fixtures
-
-        def lines
+        let(:lines) do
           [
             started(id: "a", file: nil, desc: "fast one"),
             factory(name: "user", ex: "a", dur: 2.0),
@@ -23,10 +21,9 @@ module RSpecTelemetry
           ]
         end
 
-        def app = App.new(Document.from_lines(lines), depth: :ansi256)
-        def key(k) = TuiTui::KeyEvent.new(key: k)
-        def size = TuiTui::Size.new(rows: 16, cols: 78)
-        def screen(a) = (1..size.rows).map { |r| a.view(size).render_row(r, enabled: false) }.join("\n")
+        let(:app) { App.new(Document.from_lines(lines), depth: :ansi256) }
+        let(:size) { TuiTui::Size.new(rows: 16, cols: 78) }
+        let(:ctx) { render_context(size) }
 
         it "2 shows examples slowest first" do
           a = app

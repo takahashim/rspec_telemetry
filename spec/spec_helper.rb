@@ -10,6 +10,8 @@ require "rspec_telemetry"
 require "rspec_telemetry/trace/viewer"
 require "json"
 
+Dir[File.join(__dir__, "support", "*.rb")].sort.each { |f| require f }
+
 module RSpecTelemetry
   module Trace
     module Viewer
@@ -105,6 +107,9 @@ RSpec.configure do |config|
   config.expect_with(:rspec) { |c| c.syntax = :expect }
   config.disable_monkey_patching!
   config.order = :random
+
+  config.include RSpecTelemetry::Trace::Viewer::Fixtures
+  config.include ViewerHelpers
 
   config.after { RSpecTelemetry.reset! }
 end
