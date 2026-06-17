@@ -14,6 +14,7 @@ module RSpecTelemetry
 
         State = Data.define(
           :size,
+          :chrome,
           :regions,
           :document,
           :screen,
@@ -33,7 +34,7 @@ module RSpecTelemetry
         Result = Data.define(:canvas, :detail_scroll)
 
         def render(state)
-          canvas = TuiTui::Canvas.blank(state.size)
+          canvas = TuiTui::Canvas.blank(state.size, chrome: state.chrome)
           state.list.ensure_visible(state.regions.list.rows)
 
           TimeBar.new(current_ms: state.screen.time_bar_current, total_ms: state.document.end_wall_ms)
@@ -62,7 +63,8 @@ module RSpecTelemetry
 
         def draw_divider(canvas, regions)
           body = regions.body
-          body.rows.times { |dr| canvas.text(body.row + dr, regions.divider, "|", DIVIDER) }
+          rule = canvas.chrome.v
+          body.rows.times { |dr| canvas.text(body.row + dr, regions.divider, rule, DIVIDER) }
         end
 
         def draw_status(canvas, state)

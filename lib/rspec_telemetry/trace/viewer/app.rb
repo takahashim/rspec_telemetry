@@ -93,10 +93,12 @@ module RSpecTelemetry
           end
         end
 
-        def view(size)
+        def view(ctx)
+          size = ctx.size
+          chrome = ctx.chrome
           @size = size
           r = layout(size)
-          result = @renderer.render(render_state(size, r))
+          result = @renderer.render(render_state(size, r, chrome))
           @detail_scroll = result.detail_scroll
           result.canvas
         end
@@ -243,9 +245,10 @@ module RSpecTelemetry
           "#{@list.cursor + 1}/#{count}"
         end
 
-        def render_state(size, regions)
+        def render_state(size, regions, chrome)
           AppRenderer::State.new(
             size: size,
+            chrome: chrome,
             regions: regions,
             document: @document,
             screen: @screen,

@@ -38,6 +38,19 @@ module RSpecTelemetry
           expect(a.focus).to eq(:timeline)
         end
 
+        it "draws Unicode chrome when the RenderContext reports box-drawing support" do
+          a = app
+          ctx = TuiTui::RenderContext.new(size: size, chrome: TuiTui::BoxChrome::UNICODE)
+          rows = (1..size.rows).map { |r| a.view(ctx).render_row(r, enabled: false) }.join("\n")
+          # the two-pane divider follows the chrome
+          expect(rows).to include("│")
+          expect(rows).not_to include("|")
+        end
+
+        it "falls back to an ASCII divider with a bare Size (no chrome)" do
+          expect(screen(app)).to include("|")
+        end
+
         it "down and up move the cursor" do
           a = app
           a.update(key("j"))
