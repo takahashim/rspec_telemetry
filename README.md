@@ -121,7 +121,8 @@ $ bundle exec rspec-telemetry-compare \
 ```
 
 Factories are grouped by `factory:strategy`, so `user:create` and `user:build`
-are compared separately.
+are compared separately. Use `--by-factory` to combine strategies and compare by
+factory name only (e.g. one `user` row).
 
 By default, only root factory events (`depth == 0`) are counted, and their
 inclusive `duration_ms` is compared.
@@ -134,6 +135,8 @@ counting while showing the actual number and cost of associated factories.
 rspec-telemetry-compare --sort count BEFORE AFTER
 rspec-telemetry-compare --sort factory BEFORE AFTER
 rspec-telemetry-compare --all-depths BEFORE AFTER
+rspec-telemetry-compare --by-factory BEFORE AFTER     # combine create/build
+rspec-telemetry-compare --all-depths --by-factory BEFORE AFTER
 ```
 
 ## TUI viewer: `rspec-telemetry-viewer`

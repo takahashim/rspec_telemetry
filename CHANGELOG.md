@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `rspec-telemetry-compare --by-factory` to combine strategies (create/build)
+  and compare by factory name only. Works together with `--all-depths`.
+
 ## [0.3.0] - 2026-06-25
 
 ### Added

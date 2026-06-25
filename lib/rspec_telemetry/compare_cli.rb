@@ -11,7 +11,7 @@ module RSpecTelemetry
       @argv = argv
       @out = out
       @err = err
-      @options = {all_depths: false, sort: "duration"}
+      @options = {all_depths: false, by_factory: false, sort: "duration"}
     end
 
     def run
@@ -21,9 +21,13 @@ module RSpecTelemetry
         return 1
       end
 
-      comparison = FactoryComparison.new(paths[0], paths[1], all_depths: @options[:all_depths])
+      comparison = FactoryComparison.new(
+        paths[0], paths[1],
+        all_depths: @options[:all_depths],
+        by_factory: @options[:by_factory]
+      )
       rows = sort_rows(comparison.rows)
-      @out.puts(render(rows, duration_label: comparison.duration_label))
+      @out.puts(render(rows, duration_label: comparison.duration_label, label_heading: label_heading))
       0
     rescue Errno::ENOENT => e
       @err.puts("File not found: #{e.message}")
@@ -40,6 +44,9 @@ module RSpecTelemetry
         options.banner = "Usage: rspec-telemetry-compare [options] BEFORE AFTER"
         options.on("--all-depths", "Include nested FactoryBot events") do
           @options[:all_depths] = true
+        end
+        options.on("--by-factory", "Combine strategies (create/build) per factory") do
+          @options[:by_factory] = true
         end
         options.on(
           "--sort KEY",
@@ -68,9 +75,13 @@ module RSpecTelemetry
       end
     end
 
-    def render(rows, duration_label:)
+    def label_heading
+      @options[:by_factory] ? "Factory" : "Factory:Strategy"
+    end
+
+    def render(rows, duration_label:, label_heading:)
       headings = [
-        "Factory:Strategy",
+        label_heading,
         "Before",
         "After",
         "Diff",

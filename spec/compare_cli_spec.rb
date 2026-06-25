@@ -58,6 +58,22 @@ RSpec.describe RSpecTelemetry::CompareCLI do
     expect(err.string).to include("BEFORE AFTER")
   end
 
+  it "combines strategies per factory with --by-factory" do
+    out = StringIO.new
+    err = StringIO.new
+
+    code = described_class.new(
+      [@before_path, @after_path, "--by-factory"],
+      out: out,
+      err: err
+    ).run
+
+    expect(code).to eq(0)
+    expect(out.string).to include("Factory ")
+    expect(out.string).to include("ticket_book")
+    expect(out.string).not_to include("ticket_book:create")
+  end
+
   it "labels all-depth timing as self time" do
     out = StringIO.new
     err = StringIO.new

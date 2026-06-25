@@ -60,6 +60,23 @@ RSpec.describe RSpecTelemetry::FactoryComparison do
     expect(rows["user:build"].before_count).to eq(1)
   end
 
+  it "combines strategies per factory with by_factory" do
+    write_events(
+      @before_path,
+      [
+        {"type" => "factory_bot.run_factory", "factory" => "user", "strategy" => "create", "depth" => 0, "duration_ms" => 20},
+        {"type" => "factory_bot.run_factory", "factory" => "user", "strategy" => "build", "depth" => 0, "duration_ms" => 5}
+      ]
+    )
+    write_events(@after_path, [])
+
+    rows = described_class.new(@before_path, @after_path, by_factory: true).rows.to_h { |row| [row.label, row] }
+
+    expect(rows.keys).to contain_exactly("user")
+    expect(rows["user"].before_count).to eq(2)
+    expect(rows["user"].before_duration_ms).to eq(25.0)
+  end
+
   it "can include nested factory events and compares self time" do
     before_events = [
       {

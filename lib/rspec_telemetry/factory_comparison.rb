@@ -38,12 +38,13 @@ module RSpecTelemetry
       end
     end
 
-    attr_reader :before_path, :after_path, :all_depths
+    attr_reader :before_path, :after_path, :all_depths, :by_factory
 
-    def initialize(before_path, after_path, all_depths: false)
+    def initialize(before_path, after_path, all_depths: false, by_factory: false)
       @before_path = before_path
       @after_path = after_path
       @all_depths = all_depths
+      @by_factory = by_factory
     end
 
     def duration_label
@@ -72,7 +73,8 @@ module RSpecTelemetry
 
     # Reuse the shared accumulator so counts, durations, and the factory:strategy
     # granularity stay identical to the live summary, CLI report, and viewer.
-    # create and build are kept as separate keys (e.g. "user:create").
+    # create and build are kept as separate keys (e.g. "user:create") unless
+    # by_factory rolls every strategy up under the bare factory name.
     def aggregate(path)
       acc = FactoryAggregation::Accumulator.new
 
@@ -88,7 +90,23 @@ module RSpecTelemetry
         )
       end
 
-      acc.stats.to_h { |stat| [stat.key, stat] }
+      stats = by_factory ? merge_by_factory(acc.stats) : acc.stats
+      stats.to_h { |stat| [stat.key, stat] }
+    end
+
+    # Collapse create/build/etc. into a single row keyed by the factory name.
+    def merge_by_factory(stats)
+      stats.group_by(&:factory).map do |factory, group|
+        FactoryAggregation::Stat.new(
+          key: factory,
+          factory: factory,
+          strategy: nil,
+          count: group.sum(&:count),
+          total_ms: group.sum(&:total_ms),
+          self_total_ms: group.sum(&:self_total_ms),
+          max_ms: group.map(&:max_ms).max
+        )
+      end
     end
 
     def factory_event?(event)
