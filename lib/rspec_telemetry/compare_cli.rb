@@ -22,7 +22,7 @@ module RSpecTelemetry
 
       comparison = FactoryComparison.new(paths[0], paths[1], all_depths: @options[:all_depths])
       rows = sort_rows(comparison.rows)
-      @out.puts(render(rows, duration_label: comparison.all_depths ? "Self(ms)" : "Total(ms)"))
+      @out.puts(render(rows, duration_label: comparison.duration_label))
       0
     rescue Errno::ENOENT => e
       @err.puts("File not found: #{e.message}")
@@ -59,17 +59,17 @@ module RSpecTelemetry
     def sort_rows(rows)
       case @options[:sort]
       when "count"
-        rows.sort_by { |row| [-row.count_diff.abs, row.factory] }
+        rows.sort_by { |row| [-row.count_diff.abs, row.label] }
       when "factory"
-        rows.sort_by(&:factory)
+        rows.sort_by(&:label)
       else
-        rows.sort_by { |row| [-row.duration_diff_ms.abs, row.factory] }
+        rows.sort_by { |row| [-row.duration_diff_ms.abs, row.label] }
       end
     end
 
     def render(rows, duration_label:)
       headings = [
-        "Factory",
+        "Factory:Strategy",
         "Before",
         "After",
         "Diff",
@@ -81,7 +81,7 @@ module RSpecTelemetry
       ]
       body = rows.map do |row|
         [
-          row.factory,
+          row.label,
           row.before_count.to_s,
           row.after_count.to_s,
           signed_integer(row.count_diff),

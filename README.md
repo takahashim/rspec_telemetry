@@ -120,6 +120,9 @@ $ bundle exec rspec-telemetry-compare \
     tmp/rspec_telemetry.after.ndjson
 ```
 
+Factories are grouped by `factory:strategy`, so `user:create` and `user:build`
+are compared separately.
+
 By default, only root factory events (`depth == 0`) are counted, and their
 inclusive `duration_ms` is compared.
 

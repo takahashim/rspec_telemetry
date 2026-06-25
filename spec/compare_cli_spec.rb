@@ -15,6 +15,7 @@ RSpec.describe RSpecTelemetry::CompareCLI do
         JSON.generate(
           "type" => "factory_bot.run_factory",
           "factory" => "ticket_book",
+          "strategy" => "create",
           "depth" => 0,
           "duration_ms" => 100
         ) + "\n"
@@ -24,6 +25,7 @@ RSpec.describe RSpecTelemetry::CompareCLI do
         JSON.generate(
           "type" => "factory_bot.run_factory",
           "factory" => "ticket_book",
+          "strategy" => "create",
           "depth" => 0,
           "duration_ms" => 25
         ) + "\n"
@@ -40,8 +42,8 @@ RSpec.describe RSpecTelemetry::CompareCLI do
 
     expect(code).to eq(0)
     expect(err.string).to be_empty
-    expect(out.string).to include("Factory")
-    expect(out.string).to include("ticket_book")
+    expect(out.string).to include("Factory:Strategy")
+    expect(out.string).to include("ticket_book:create")
     expect(out.string).to include("-75.0")
     expect(out.string).to include("-75.0%")
   end

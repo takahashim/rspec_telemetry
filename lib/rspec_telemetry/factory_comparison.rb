@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require_relative "ndjson"
+require_relative "factory_aggregation"
 
 module RSpecTelemetry
   class FactoryComparison
-    FactoryStat = Struct.new(:count, :duration_ms)
     Row = Struct.new(
-      :factory,
+      :label,
       :before_count,
       :after_count,
       :before_duration_ms,
@@ -46,39 +46,49 @@ module RSpecTelemetry
       @all_depths = all_depths
     end
 
+    def duration_label
+      all_depths ? "Self(ms)" : "Total(ms)"
+    end
+
     def rows
       before = aggregate(before_path)
       after = aggregate(after_path)
 
-      (before.keys | after.keys).sort.map do |factory|
-        before_stat = before.fetch(factory, empty_stat)
-        after_stat = after.fetch(factory, empty_stat)
+      (before.keys | after.keys).sort.map do |key|
+        before_stat = before[key]
+        after_stat = after[key]
 
         Row.new(
-          factory: factory,
-          before_count: before_stat.count,
-          after_count: after_stat.count,
-          before_duration_ms: before_stat.duration_ms,
-          after_duration_ms: after_stat.duration_ms
+          label: key,
+          before_count: before_stat&.count || 0,
+          after_count: after_stat&.count || 0,
+          before_duration_ms: duration_for(before_stat),
+          after_duration_ms: duration_for(after_stat)
         )
       end
     end
 
     private
 
+    # Reuse the shared accumulator so counts, durations, and the factory:strategy
+    # granularity stay identical to the live summary, CLI report, and viewer.
+    # create and build are kept as separate keys (e.g. "user:create").
     def aggregate(path)
-      stats = Hash.new { |hash, factory| hash[factory] = FactoryStat.new(0, 0.0) }
+      acc = FactoryAggregation::Accumulator.new
 
       File.foreach(path) do |line|
         event = Ndjson.parse(line)
         next unless factory_event?(event)
 
-        stat = stats[event["factory"].to_s]
-        stat.count += 1
-        stat.duration_ms += duration_ms(event)
+        acc.add(
+          factory: event["factory"],
+          strategy: event["strategy"],
+          duration_ms: event["duration_ms"],
+          self_duration_ms: event["self_duration_ms"]
+        )
       end
 
-      stats
+      acc.stats.to_h { |stat| [stat.key, stat] }
     end
 
     def factory_event?(event)
@@ -89,13 +99,12 @@ module RSpecTelemetry
       event["depth"].to_i.zero?
     end
 
-    def duration_ms(event)
-      key = all_depths ? "self_duration_ms" : "duration_ms"
-      event[key].to_f
-    end
+    # Default mode compares inclusive time on root events; --all-depths compares
+    # self time so nested children are not double-counted.
+    def duration_for(stat)
+      return 0.0 unless stat
 
-    def empty_stat
-      FactoryStat.new(0, 0.0)
+      all_depths ? stat.self_total_ms : stat.total_ms
     end
   end
 end
