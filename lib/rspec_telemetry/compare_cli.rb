@@ -3,6 +3,7 @@
 require "optparse"
 
 require_relative "factory_comparison"
+require_relative "formatting"
 
 module RSpecTelemetry
   class CompareCLI
@@ -84,11 +85,11 @@ module RSpecTelemetry
           row.label,
           row.before_count.to_s,
           row.after_count.to_s,
-          signed_integer(row.count_diff),
+          Formatting.signed_integer(row.count_diff),
           percent(row.count_change_percent),
-          decimal(row.before_duration_ms),
-          decimal(row.after_duration_ms),
-          signed_decimal(row.duration_diff_ms),
+          Formatting.fixed(row.before_duration_ms),
+          Formatting.fixed(row.after_duration_ms),
+          Formatting.signed_fixed(row.duration_diff_ms),
           percent(row.duration_change_percent)
         ]
       end
@@ -110,20 +111,10 @@ module RSpecTelemetry
       end.join(" | ")
     end
 
-    def signed_integer(value)
-      format("%+d", value)
-    end
-
-    def decimal(value)
-      format("%.1f", value)
-    end
-
-    def signed_decimal(value)
-      format("%+.1f", value)
-    end
-
+    # "-" marks a missing baseline (before count/duration was zero), which is a
+    # table rule rather than number formatting, so it stays here.
     def percent(value)
-      value ? format("%+.1f%%", value) : "-"
+      value ? Formatting.signed_percent(value) : "-"
     end
   end
 end

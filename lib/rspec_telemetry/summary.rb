@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "factory_aggregation"
+require_relative "formatting"
 
 module RSpecTelemetry
   class Summary
@@ -102,10 +103,10 @@ module RSpecTelemetry
       tops.each_with_index do |f, i|
         lines << "#{i + 1}. #{f.key}"
         lines << "   count: #{f.count}"
-        lines << "   self_total: #{round(f.self_total_ms)}ms"
-        lines << "   total: #{round(f.total_ms)}ms"
-        lines << "   avg: #{round(f.avg_ms)}ms"
-        lines << "   max: #{round(f.max_ms)}ms"
+        lines << "   self_total: #{Formatting.fixed(f.self_total_ms)}ms"
+        lines << "   total: #{Formatting.fixed(f.total_ms)}ms"
+        lines << "   avg: #{Formatting.fixed(f.avg_ms)}ms"
+        lines << "   max: #{Formatting.fixed(f.max_ms)}ms"
         lines << ""
       end
 
@@ -119,16 +120,12 @@ module RSpecTelemetry
       lines = ["Slow examples:", ""]
       slow.each_with_index do |e, i|
         lines << "#{i + 1}. #{e.example_id}"
-        lines << "   duration: #{round(e.duration_ms)}ms"
-        lines << "   factory_bot_total: #{round(e.factory_bot_total_ms)}ms (#{e.factory_bot_count} calls)"
+        lines << "   duration: #{Formatting.fixed(e.duration_ms)}ms"
+        lines << "   factory_bot_total: #{Formatting.fixed(e.factory_bot_total_ms)}ms (#{e.factory_bot_count} calls)"
         lines << ""
       end
 
       lines
-    end
-
-    def round(value)
-      value.to_f.round(1)
     end
   end
 end

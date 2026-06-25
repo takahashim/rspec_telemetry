@@ -1,16 +1,15 @@
 # frozen_string_literal: true
 
+require_relative "formatting"
+
 module RSpecTelemetry
   class ConsoleReport
     module Helpers
       module_function
 
-      def fmt(ms)
-        ms = ms.to_f
-        ms >= 1000 ? format("%.2fs", ms / 1000.0) : format("%.1fms", ms)
-      end
+      def fmt(ms) = Formatting.duration(ms)
 
-      def pct(ratio) = format("%.1f%%", ratio * 100)
+      def pct(ratio) = Formatting.percent(ratio * 100)
 
       def truncate(str, len) = str.length > len ? "#{str[0, len - 1]}…" : str
 
