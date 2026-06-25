@@ -1,0 +1,129 @@
+# frozen_string_literal: true
+
+require "optparse"
+
+require_relative "factory_comparison"
+
+module RSpecTelemetry
+  class CompareCLI
+    def initialize(argv, out: $stdout, err: $stderr)
+      @argv = argv
+      @out = out
+      @err = err
+      @options = {all_depths: false, sort: "duration"}
+    end
+
+    def run
+      paths = parse!
+      unless paths.length == 2
+        @err.puts("Specify exactly two telemetry files: BEFORE AFTER")
+        return 1
+      end
+
+      comparison = FactoryComparison.new(paths[0], paths[1], all_depths: @options[:all_depths])
+      rows = sort_rows(comparison.rows)
+      @out.puts(render(rows, duration_label: comparison.all_depths ? "Self(ms)" : "Total(ms)"))
+      0
+    rescue Errno::ENOENT => e
+      @err.puts("File not found: #{e.message}")
+      1
+    rescue OptionParser::ParseError => e
+      @err.puts(e.message)
+      1
+    end
+
+    private
+
+    def parse!
+      parser = OptionParser.new do |options|
+        options.banner = "Usage: rspec-telemetry-compare [options] BEFORE AFTER"
+        options.on("--all-depths", "Include nested FactoryBot events") do
+          @options[:all_depths] = true
+        end
+        options.on(
+          "--sort KEY",
+          %w[duration count factory],
+          "Sort by duration, count, or factory (default: duration)"
+        ) do |value|
+          @options[:sort] = value
+        end
+        options.on("-h", "--help", "Show this help") do
+          @out.puts(options)
+          exit(0)
+        end
+      end
+
+      parser.parse(@argv)
+    end
+
+    def sort_rows(rows)
+      case @options[:sort]
+      when "count"
+        rows.sort_by { |row| [-row.count_diff.abs, row.factory] }
+      when "factory"
+        rows.sort_by(&:factory)
+      else
+        rows.sort_by { |row| [-row.duration_diff_ms.abs, row.factory] }
+      end
+    end
+
+    def render(rows, duration_label:)
+      headings = [
+        "Factory",
+        "Before",
+        "After",
+        "Diff",
+        "Change",
+        "Before #{duration_label}",
+        "After #{duration_label}",
+        "Diff(ms)",
+        "Change"
+      ]
+      body = rows.map do |row|
+        [
+          row.factory,
+          row.before_count.to_s,
+          row.after_count.to_s,
+          signed_integer(row.count_diff),
+          percent(row.count_change_percent),
+          decimal(row.before_duration_ms),
+          decimal(row.after_duration_ms),
+          signed_decimal(row.duration_diff_ms),
+          percent(row.duration_change_percent)
+        ]
+      end
+
+      widths = headings.each_index.map do |index|
+        ([headings[index]] + body.map { |columns| columns[index] }).map(&:length).max
+      end
+
+      lines = []
+      lines << format_row(headings, widths)
+      lines << widths.map { |width| "-" * width }.join("-+-")
+      body.each { |columns| lines << format_row(columns, widths) }
+      lines.join("\n")
+    end
+
+    def format_row(columns, widths)
+      columns.each_with_index.map do |value, index|
+        index.zero? ? value.ljust(widths[index]) : value.rjust(widths[index])
+      end.join(" | ")
+    end
+
+    def signed_integer(value)
+      format("%+d", value)
+    end
+
+    def decimal(value)
+      format("%.1f", value)
+    end
+
+    def signed_decimal(value)
+      format("%+.1f", value)
+    end
+
+    def percent(value)
+      value ? format("%+.1f%%", value) : "-"
+    end
+  end
+end

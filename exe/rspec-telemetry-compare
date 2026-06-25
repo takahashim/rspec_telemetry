@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "rspec_telemetry/compare_cli"
+
+exit RSpecTelemetry::CompareCLI.new(ARGV).run
