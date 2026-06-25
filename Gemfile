@@ -7,4 +7,5 @@ gemspec
 gem "rake"
 gem "rspec"
 
+gem "activesupport"
 gem "factory_bot"

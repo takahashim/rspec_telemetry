@@ -1,17 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-begin
-  require "rspec_telemetry/trace/viewer"
-rescue LoadError, NameError => e
-  abort <<~MSG
-    rspec-telemetry-viewer could not start: #{e.class}: #{e.message}
-
-    The interactive viewer requires Ruby >= 3.2 and the tui_tui gem.
-    Add it to your Gemfile:  gem "tui_tui"
-    (Collecting telemetry NDJSON does not require either.)
-  MSG
-end
+require "rspec_telemetry/trace/viewer"
 
 # Read an rspec_telemetry NDJSON file and either open the interactive TUI (when
 # stdout is a terminal) or print the decorated text report (when piped/redirected).

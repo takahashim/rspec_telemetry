@@ -10,9 +10,9 @@ It helps you analyze your test suite.
 
 ## Requirements
 
-- Ruby >= 3.1 for collection (the RSpec formatter that writes NDJSON).
+- Ruby >= 3.2.
 - RSpec.
-- The interactive viewer (`rspec-telemetry-viewer`) needs Ruby >= 3.2 and the optional `tui_tui` gem (`gem "tui_tui"`).
+- `tui_tui` powers the interactive viewer (`rspec-telemetry-viewer`).
 - activesupport (optional): only needed for FactoryBot tracking, which relies on
   `ActiveSupport::Notifications`. FactoryBot pulls it in, so projects using
   FactoryBot already have it; otherwise factory tracking is skipped automatically.
@@ -104,9 +104,33 @@ Example drill-down output:
 Example: ./spec/x_spec.rb[2:1]
   status: passed   duration: 52.4ms
   FactoryBot calls (indented by nesting depth):
-      user:create  self 6.7ms / total 6.7ms
+     user:create  self 6.7ms / total 6.7ms
     order:create  self 2.6ms / total 9.3ms      <- order total includes child user time
   factory self total: 27.2ms across 6 calls
+```
+
+## Comparing factory usage between two runs
+
+Use `rspec-telemetry-compare` to compare FactoryBot call counts and cumulative
+factory time between two telemetry files.
+
+```bash
+$ bundle exec rspec-telemetry-compare \
+    tmp/rspec_telemetry.before.ndjson \
+    tmp/rspec_telemetry.after.ndjson
+```
+
+By default, only root factory events (`depth == 0`) are counted, and their
+inclusive `duration_ms` is compared.
+
+With `--all-depths`, every factory event is counted and `self_duration_ms` is
+compared. Self time excludes nested child factories, so it avoids double
+counting while showing the actual number and cost of associated factories.
+
+```bash
+rspec-telemetry-compare --sort count BEFORE AFTER
+rspec-telemetry-compare --sort factory BEFORE AFTER
+rspec-telemetry-compare --all-depths BEFORE AFTER
 ```
 
 ## TUI viewer: `rspec-telemetry-viewer`

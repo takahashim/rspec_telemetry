@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- Both collection and the interactive viewer now require Ruby >= 3.2 (was >= 3.1
+  for collection). `tui_tui`, needed only by the viewer, requires Ruby >= 3.2, so
+  splitting the requirement gave no usable benefit while complicating install and
+  CI.
+- `tui_tui` is now a runtime dependency (was a development dependency) so the
+  bundled `rspec-telemetry-viewer` executable works without a manual `gem
+  "tui_tui"`. The viewer still degrades gracefully if it is unavailable.
+
 ## [0.2.0] - 2026-06-17
 
 ### Changed
