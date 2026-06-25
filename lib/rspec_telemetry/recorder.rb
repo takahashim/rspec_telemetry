@@ -2,6 +2,8 @@
 
 require "time"
 
+require_relative "summary"
+
 module RSpecTelemetry
   class Recorder
     # FactoryBot notifications read this to attach themselves to the active example.
@@ -43,7 +45,6 @@ module RSpecTelemetry
     def finish
       return unless @started
 
-      SummaryPrinter.print(@summary, @config) if @config.print_summary
       @writer.close
       @started = false
     end

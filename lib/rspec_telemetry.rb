@@ -32,7 +32,13 @@ module RSpecTelemetry
     end
 
     def finish!
-      @recorder&.finish
+      active = @recorder
+      if active&.started?
+        # Printing the end-of-run summary is a reporting concern owned by the
+        # lifecycle, not by the Recorder (which only records events).
+        SummaryPrinter.print(active.summary, config)
+      end
+      active&.finish
       unsubscribe!
     end
 
