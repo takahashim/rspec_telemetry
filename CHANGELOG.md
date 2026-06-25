@@ -5,6 +5,7 @@
 ### Added
 - `rspec-telemetry-compare --by-factory` to combine strategies (create/build)
   and compare by factory name only. Works together with `--all-depths`.
+- `rspec-telemetry-compare` now prints a `TOTAL` row summing all factories.
 
 ## [0.3.0] - 2026-06-25
 

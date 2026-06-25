@@ -48,6 +48,21 @@ RSpec.describe RSpecTelemetry::CompareCLI do
     expect(out.string).to include("-75.0%")
   end
 
+  it "appends a TOTAL row summing every factory" do
+    out = StringIO.new
+    err = StringIO.new
+
+    code = described_class.new([@before_path, @after_path], out: out, err: err).run
+
+    expect(code).to eq(0)
+    total = out.string.lines.find { |line| line.start_with?("TOTAL") }
+    expect(total).not_to be_nil
+    # before 100 -> after 25 across the single factory
+    expect(total).to include("100.0")
+    expect(total).to include("25.0")
+    expect(total).to include("-75.0%")
+  end
+
   it "requires exactly two paths" do
     out = StringIO.new
     err = StringIO.new

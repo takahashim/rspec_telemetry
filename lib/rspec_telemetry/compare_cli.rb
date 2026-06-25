@@ -91,29 +91,49 @@ module RSpecTelemetry
         "Diff(ms)",
         "Change"
       ]
-      body = rows.map do |row|
-        [
-          row.label,
-          row.before_count.to_s,
-          row.after_count.to_s,
-          Formatting.signed_integer(row.count_diff),
-          percent(row.count_change_percent),
-          Formatting.fixed(row.before_duration_ms),
-          Formatting.fixed(row.after_duration_ms),
-          Formatting.signed_fixed(row.duration_diff_ms),
-          percent(row.duration_change_percent)
-        ]
-      end
+      body = rows.map { |row| columns_for(row) }
+      total = columns_for(totals_row(rows))
 
       widths = headings.each_index.map do |index|
-        ([headings[index]] + body.map { |columns| columns[index] }).map(&:length).max
+        ([headings[index]] + (body + [total]).map { |columns| columns[index] }).map(&:length).max
       end
 
       lines = []
       lines << format_row(headings, widths)
-      lines << widths.map { |width| "-" * width }.join("-+-")
+      lines << separator(widths)
       body.each { |columns| lines << format_row(columns, widths) }
+      lines << separator(widths)
+      lines << format_row(total, widths)
       lines.join("\n")
+    end
+
+    def columns_for(row)
+      [
+        row.label,
+        row.before_count.to_s,
+        row.after_count.to_s,
+        Formatting.signed_integer(row.count_diff),
+        percent(row.count_change_percent),
+        Formatting.fixed(row.before_duration_ms),
+        Formatting.fixed(row.after_duration_ms),
+        Formatting.signed_fixed(row.duration_diff_ms),
+        percent(row.duration_change_percent)
+      ]
+    end
+
+    # Reuse Row so the total's diff/percent math matches every other line.
+    def totals_row(rows)
+      FactoryComparison::Row.new(
+        label: "TOTAL",
+        before_count: rows.sum(&:before_count),
+        after_count: rows.sum(&:after_count),
+        before_duration_ms: rows.sum(&:before_duration_ms),
+        after_duration_ms: rows.sum(&:after_duration_ms)
+      )
+    end
+
+    def separator(widths)
+      widths.map { |width| "-" * width }.join("-+-")
     end
 
     def format_row(columns, widths)
