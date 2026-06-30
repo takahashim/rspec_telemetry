@@ -2,10 +2,17 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-30
+
 ### Added
 - `rspec-telemetry-compare --by-factory` to combine strategies (create/build)
   and compare by factory name only. Works together with `--all-depths`.
 - `rspec-telemetry-compare` now prints a `TOTAL` row summing all factories.
+
+### Changed
+- `rspec-telemetry-compare` now reuses `FactoryAggregation` and keys rows by
+  `factory:strategy`, so create and build of the same factory are compared
+  separately.
 
 ## [0.3.0] - 2026-06-25
 
@@ -37,6 +44,8 @@
 
 First public release.
 
-[Unreleased]: https://github.com/takahashim/rspec_telemetry/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/takahashim/rspec_telemetry/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/takahashim/rspec_telemetry/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/takahashim/rspec_telemetry/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/takahashim/rspec_telemetry/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/takahashim/rspec_telemetry/releases/tag/v0.1.0
